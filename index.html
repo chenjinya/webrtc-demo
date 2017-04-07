@@ -79,7 +79,7 @@
 <script type="text/javascript" src="./bootstrap/js/bootstrap.min.js"></script>
 <script src="socket/socket.io.min.js"></script>
 <script type="text/javascript">
-    window.socket = io.connect('//172.22.82.30:3000');
+    window.socket = io.connect('//192.168.1.24:3000');
             
     socket.on('connect', function(o){
         console.log('socket id', socket.id); 
@@ -119,12 +119,14 @@
         navigator.msGetUserMedia);
     var isCaller = false;
     $('body').on('click', '[btns-open]', function (){
-    openVideoStream();
+        openVideoStream();
     })
     //使用Google的stun服务器
     var iceServer = {
-    "iceServers": [{
-            "url": "stun:stun.services.mozilla.com"
+        "iceServers": [{
+            "url": "turn:47.92.0.111",
+            "credential": 'b3de26a102c1189b4a9188b51387e319',
+            "username": "ifaceparty"
         }]
     };
 
@@ -134,12 +136,23 @@
         //发送ICE候选到其他客户端
         PC.onicecandidate = function(event){
             console.log('pc.onicecandidate ', event);
-            _socket.emit("rtcmsg", {
-                "event": "__ice_candidate",
-                "data": {
-                    "candidate": event.candidate
-                }
-            });
+              if (event.candidate) {
+                var tmp = event.candidate.candidate;
+                //强制走turn
+                if (tmp.indexOf("typ relay ") >= 0 ) {
+                  /////////////////////////////////////////// NEVER happens
+                  console.log('pc.onicecandidate ', event);
+                    _socket.emit("rtcmsg", {
+                        "event": "__ice_candidate",
+                        "data": {
+                            "candidate": event.candidate
+                        }
+                    });
+                }    
+              } else {
+                console.log('End of candidates.');
+              }
+            
         };
         //如果检测到媒体流连接到本地，将其绑定到一个video标签上输出
         PC.onaddstream = function(event){
